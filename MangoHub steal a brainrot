@@ -25,7 +25,23 @@ screenGui.Name = "MangoHub"
 screenGui.Parent = game:GetService("CoreGui") -- Помещаем в CoreGui для KRNL
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Создаем основное окно
+-- Создаем кнопку-букву Т для открытия меню
+local openButton = Instance.new("TextButton")
+openButton.Name = "OpenButton"
+openButton.Size = UDim2.new(0, 40, 0, 40)
+openButton.Position = UDim2.new(0, 10, 0, 10)
+openButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+openButton.BorderColor3 = Color3.fromRGB(100, 100, 100)
+openButton.BorderSizePixel = 2
+openButton.Text = "Т"
+openButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+openButton.TextSize = 20
+openButton.TextScaled = true
+openButton.Font = Enum.Font.GothamBold
+openButton.AutoButtonColor = true
+openButton.Parent = screenGui
+
+-- Создаем основное окно (изначально скрытое)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 300, 0, 250)
@@ -35,6 +51,7 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Серый цвет
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
+mainFrame.Visible = false -- Сначала скрываем меню
 mainFrame.Parent = screenGui
 
 -- Заголовок
@@ -98,6 +115,11 @@ local speedActive = false
 local speedValue = 16
 local infJumpActive = false
 local noclipConnection = nil
+
+-- Функция для открытия/закрытия меню
+openButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
 
 -- 1. Функция Noclip
 local function toggleNoclip()
@@ -179,23 +201,4 @@ local function stealBrainrot()
         end
 
         -- Берем его в руки (имитируем инструмент)
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            brainrot.Parent = character
-        end
-
-        -- Телепортируем к себе на "базу" (к своему персонажу)
-        local rootPart = character:FindFirstChild("HumanoidRootPart")
-        if rootPart and brainrot:FindFirstChildWhichIsA("BasePart") then
-            local brainrotPart = brainrot:FindFirstChildWhichIsA("BasePart")
-            -- Помещаем перед собой, а не внутрь, чтобы избежать ошибок
-            brainrotPart.CFrame = rootPart.CFrame + rootPart.CFrame.LookVector * 5
-        end
-    end, "Steal Brainrot Function")
-end
-
-stealButton.MouseButton1Click:Connect(stealBrainrot)
-
--- Чистим за собой при отключении скрипта
-game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").ChildRemoved:Connect(function(child)
-    if child
+        local humanoid = character:FindFirstChildOf
