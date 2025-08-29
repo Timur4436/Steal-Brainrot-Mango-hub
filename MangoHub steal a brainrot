@@ -1,0 +1,201 @@
+local function safeCall(callback, errorMsg)
+    local success, result = pcall(callback)
+    if not success then
+        warn("MangoHub Error: " .. errorMsg)
+        return nil
+    end
+    return result
+end
+
+-- Проверяем, что мы в игре
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+-- Ждем появления игрока
+local player = game:GetService("Players").LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+end)
+
+-- Создаем основной GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MangoHub"
+screenGui.Parent = game:GetService("CoreGui") -- Помещаем в CoreGui для KRNL
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Создаем основное окно
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Серый цвет
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+title.BorderSizePixel = 0
+title.Text = "MangoHub"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Боковая подпись
+local sideLabel = Instance.new("TextLabel")
+sideLabel.Name = "SideLabel"
+sideLabel.Size = UDim2.new(0, 60, 0, 20)
+sideLabel.Position = UDim2.new(1, -60, 1, -20)
+sideLabel.BackgroundTransparency = 1
+sideLabel.Text = "By TIM_TV"
+sideLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+sideLabel.TextSize = 12
+sideLabel.TextXAlignment = Enum.TextXAlignment.Right
+sideLabel.Parent = mainFrame
+
+-- Контейнер для кнопок
+local buttonLayout = Instance.new("UIListLayout")
+buttonLayout.Padding = UDim.new(0, 5)
+buttonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+buttonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+buttonLayout.Parent = mainFrame
+
+-- Функция создания кнопки
+local function createButton(name, text, parent, yOffset)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.8, 0, 0, 35)
+    button.Position = UDim2.new(0.1, 0, 0, yOffset)
+    button.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 14
+    button.Font = Enum.Font.Gotham
+    button.AutoButtonColor = true
+    button.Parent = parent
+    return button
+end
+
+-- Создаем кнопки
+local noclipButton = createButton("NoclipButton", "Noclip [OFF]", mainFrame, 40)
+local speedButton = createButton("SpeedButton", "Speed [5]", mainFrame, 80)
+local infJumpButton = createButton("InfJumpButton", "Inf Jump [OFF]", mainFrame, 120)
+local stealButton = createButton("StealButton", "Steal Brainrot", mainFrame, 160)
+
+-- Переменные состояния
+local noclipActive = false
+local speedActive = false
+local speedValue = 16
+local infJumpActive = false
+local noclipConnection = nil
+
+-- 1. Функция Noclip
+local function toggleNoclip()
+    noclipActive = not noclipActive
+    noclipButton.Text = "Noclip [" .. (noclipActive and "ON" or "OFF") .. "]"
+
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+
+    if noclipActive then
+        noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+            safeCall(function()
+                if character and character:FindFirstChild("Humanoid") then
+                    for _, part in pairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end, "Noclip Stepped Loop")
+        end)
+    end
+end
+
+noclipButton.MouseButton1Click:Connect(toggleNoclip)
+
+-- 2. Функция Speed
+local function changeSpeed()
+    speedValue = speedValue + 5
+    if speedValue > 50 then
+        speedValue = 16
+        speedActive = false
+        speedButton.Text = "Speed [16]"
+    else
+        speedActive = true
+        speedButton.Text = "Speed [" .. tostring(speedValue) .. "]"
+    end
+
+    safeCall(function()
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = speedValue
+        end
+    end, "Change WalkSpeed")
+end
+
+speedButton.MouseButton1Click:Connect(changeSpeed)
+
+-- 3. Функция Inf Jump
+local function toggleInfJump()
+    infJumpActive = not infJumpActive
+    infJumpButton.Text = "Inf Jump [" .. (infJumpActive and "ON" or "OFF") .. "]"
+end
+
+-- Подключение бесконечного прыжка к слушателю вводa
+local userInputService = game:GetService("UserInputService")
+local jumpConnection = nil
+
+jumpConnection = userInputService.JumpRequest:Connect(function()
+    safeCall(function()
+        if infJumpActive and character and character:FindFirstChild("Humanoid") and character.Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+            character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end, "Infinite Jump")
+end)
+
+infJumpButton.MouseButton1Click:Connect(toggleInfJump)
+
+-- 4. Функция Steal Brainrot
+local function stealBrainrot()
+    safeCall(function()
+        -- Ищем Brainrot в workspace
+        local brainrot = workspace:FindFirstChild("Brainrot") or workspace:FindFirstChild("BrainRot") or workspace:FindFirstChild("Brain rot")
+        
+        if not brainrot then
+            warn("MangoHub: Brainrot object not found in workspace.")
+            return
+        end
+
+        -- Берем его в руки (имитируем инструмент)
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            brainrot.Parent = character
+        end
+
+        -- Телепортируем к себе на "базу" (к своему персонажу)
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if rootPart and brainrot:FindFirstChildWhichIsA("BasePart") then
+            local brainrotPart = brainrot:FindFirstChildWhichIsA("BasePart")
+            -- Помещаем перед собой, а не внутрь, чтобы избежать ошибок
+            brainrotPart.CFrame = rootPart.CFrame + rootPart.CFrame.LookVector * 5
+        end
+    end, "Steal Brainrot Function")
+end
+
+stealButton.MouseButton1Click:Connect(stealBrainrot)
+
+-- Чистим за собой при отключении скрипта
+game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui").ChildRemoved:Connect(function(child)
+    if child
